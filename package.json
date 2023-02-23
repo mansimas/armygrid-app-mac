@@ -9,6 +9,11 @@
     "build-dev": "electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "homepage": "https://armygrid.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mansimas/armygrid-app-mac.git"
+  },
   "build": {
     "appId": "armygrid.app",
     "productName": "Armygrid",
@@ -21,13 +26,17 @@
       "token": ""
     },
     "mac": {
+      "asarUnpack": [
+        "**/*.node"
+      ],
       "target": [
-        "dmg"
+        "default"
       ],
       "identity": null,
-      "category": "public.app-category.board-games"
+      "category": "public.app-category.utilities"
     },
     "dmg": {
+      "sign": false,
       "icon": "assets/2.icns",
       "title": "Armygrid installer",
       "window": {
@@ -37,14 +46,14 @@
     }
   },
   "author": "mantas",
-  "license": "ISC",
+  "license": "CC0-1.0",
   "devDependencies": {
     "electron": "^19.0.9",
-    "electron-builder": "^22.3.2"
+    "electron-builder": "^22.8.0"
   },
   "dependencies": {
-    "axios": "^1.3.2",
+    "compare-versions": "^6.0.0-rc.1",
     "dotenv": "^16.0.3",
-    "electron-updater": "^5.3.0"
+    "github-latest-release": "^0.1.1"
   }
 }

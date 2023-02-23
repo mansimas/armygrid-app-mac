@@ -1,10 +1,10 @@
 require('dotenv').config()
 
-const saveFile = require('fs').writeFileSync;
+var saveFile = require('fs').writeFileSync;
 
-const pkgJsonPath = require.main.paths[0].split('node_modules')[0] + 'package.json';
+var pkgJsonPath = require.main.paths[0].split('node_modules')[0] + 'package.json';
 
-const json = require(pkgJsonPath);
+var json = require(pkgJsonPath);
 
 if(json.build.publish['token'] === "") {
     json.build.publish['token'] = process.env.GH_TOKEN;

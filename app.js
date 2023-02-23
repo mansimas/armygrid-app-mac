@@ -1,39 +1,21 @@
-var { app, BrowserWindow, Menu } = require('electron');
-var { autoUpdater, AppUpdater } = require('electron-updater');
+var { app, BrowserWindow, Menu, dialog, shell } = require('electron');
+var latest = require('github-latest-release');
+var { compare } = require('compare-versions');
 
 var isMac = process.platform === 'darwin'
 var mainWindow, AdditionalWindow;
-
-// process.env.APPIMAGE = require('path').join(__dirname, 'dist', `Armygrid-${app.getVersion()}.AppImage`)
-// Object.defineProperty(app, 'isPackaged', {
-//   get() {
-//     return true;
-//   }
-// });
-
-autoUpdater.setFeedURL({
-  provider: "github",
-  owner: "mansimas",
-  repo: "armygrid-app-win",
-});
-
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = true;
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     title: 'Armygrid',
     width: 1200,
     height: 700,
-    // webPreferences: {
-    //   nodeIntegration: true
-    // },
+    webPreferences: {
+      nodeIntegration: true
+    },
     icon: __dirname + '/assets/AG_logo.png', 
   });
-  // mainWindow.webContents.openDevTools();
   mainWindow.loadURL('https://armygrid.com');
-  console.log(app.getVersion())
-  // mainWindow.webContents.executeJavaScript('localStorage.setItem("thekey");', true)
   createMainMenu();
   fromApp();
 }
@@ -43,9 +25,9 @@ function createAdditionalWindow() {
     title: 'Armygrid',
     width: 1200,
     height: 700,
-    // webPreferences: {
-    //   nodeIntegration: true
-    // },
+    webPreferences: {
+      nodeIntegration: true
+    },
     icon: __dirname + '/assets/AG_logo.png',
   });
   AdditionalWindow.loadURL('https://armygrid.com');
@@ -57,62 +39,44 @@ function fromApp() {
   mainWindow.webContents.executeJavaScript("localStorage.setItem('armygrid_from_app', true)", true);
 }
 
-async function showMessage() {
-  var notification_upt = await mainWindow.webContents.executeJavaScript("localStorage.getItem('notif_for_update')", true);
-  var notification_down = await mainWindow.webContents.executeJavaScript("localStorage.getItem('notif_for_download')", true);
-  if (notification_upt && notification_down) {
-    mainWindow.webContents.executeJavaScript("var div = document.createElement('div'); div.style.cssText += 'background: rgba(0, 0, 0, 0.6); z-index: 1001; height: 100%; width: 100%; position: fixed'; document.body.insertBefore(div, document.body.firstChild);", true);
-    dialog.showMessageBox( mainWindow,
-     {
-        type: 'info',
-        buttons:['OK'],
-        title: 'Update Available',
-        message: `${notification_upt} \n${notification_down}`,
+function NotificateIfUpdate() {
+  latest('mansimas', 'armygrid-app-mac', function(err, data) {
+    if(err || !data.name) return;
+    var localVersion = require('./package.json').version;
+    var newVersion = data.name;
+    if (compare(localVersion, newVersion, '=')) return;
+    else {
+      var dialogWindow = new BrowserWindow({
+        title: 'Armygrid MMO',
+        transparent: true,
+        frame: false,
+        icon: __dirname + '/assets/AG_logo.png',
       })
-    .then(function(result) {
-      if (result.response === 0) {
-        return app.quit()
-      }
-    });
-  }
+      dialog.showMessageBox(dialogWindow,
+        {
+          type: 'info',
+          buttons:['Download'],
+          title: 'Update Available',
+          message: `A new version ${newVersion} is available. \nClick to download.`,
+        })
+      .then(function(result) {
+        if (result.response === 0) {
+          dialogWindow.webContents.downloadURL(`https://github.com/mansimas/armygrid-app-mac/releases/download/v${newVersion}/Armygrid-${newVersion}.dmg`);
+        }
+      });
+    }
+  })
 }
 
 app.whenReady().then(async () => {
   createMainWindow();
-  var info_update = await autoUpdater.checkForUpdates();
-  if(info_update.cancellationToken) showMessage()
+  NotificateIfUpdate()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow();
     }
   })
-});
-
-autoUpdater.on('checking-for-update', () => {
-  return;
-})
-
-autoUpdater.on("update-available", (info) => {
-  var notification = `Update available. Current version ${app.getVersion()}`
-  mainWindow.webContents.executeJavaScript(`localStorage.setItem("notif_for_update", "${notification}")`, true)
-  autoUpdater.downloadUpdate();
-});
-
-autoUpdater.on("update-not-available", (info) => {
-  return;
-});
-
-autoUpdater.on("update-downloaded", (info) => {
-  console.log(info)
-  var notification =`Update downloaded. New version ${info.version}`;
-  mainWindow.webContents.executeJavaScript(`localStorage.setItem("notif_for_download", "${notification}")`, true)
-});
-
-autoUpdater.on("error", (info) => {
-  mainWindow.webContents.executeJavaScript(`alert("${info}")`, true).then(function () {
-    return app.quit()
-  });
 });
 
 app.on('window-all-closed', () => {
